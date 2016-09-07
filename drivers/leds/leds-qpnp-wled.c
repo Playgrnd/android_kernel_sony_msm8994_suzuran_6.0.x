@@ -167,6 +167,15 @@
 #define QPNP_WLED_CURR_SCALE_MAX	100
 #define QPNP_WLED_BL_SCALE_MAX	1000
 #define QPNP_WLED_BUFF_SIZE	50
+
+#define QPNP_WLED_BL_BR_CUST_SCALE
+#define QPNP_WLED_BL_BR_MAX		3071
+#define QPNP_WLED_BL_BR_STEPS		118
+#define QPNP_WLED_BL_BR_STEP_SZ1	26
+#define QPNP_WLED_BL_BR_STEP_SZ2	35
+#define QPNP_WLED_BL_BR_CALC_ADD	29
+#define QPNP_WLED_BL_BR_LVL_MIN		10
+
 /* output feedback mode */
 enum qpnp_wled_fdbk_op {
 	QPNP_WLED_FDBK_AUTO,
@@ -356,6 +365,23 @@ static int qpnp_wled_set_level(struct qpnp_wled *wled, int level)
 	int i, rc;
 	u8 reg;
 
+#ifdef QPNP_WLED_BL_BR_CUST_SCALE
+	if (level > QPNP_WLED_BL_BR_MAX)
+		level = QPNP_WLED_BL_BR_MAX;
+
+	for (i = 0; i < QPNP_WLED_BL_BR_STEPS; i++) {
+		if (level >= QPNP_WLED_BL_BR_STEP_SZ1 * i +
+				QPNP_WLED_BL_BR_CALC_ADD && level <
+				QPNP_WLED_BL_BR_STEP_SZ1 * (i + 1) +
+				QPNP_WLED_BL_BR_CALC_ADD) {
+			if (i)
+				level = QPNP_WLED_BL_BR_STEP_SZ2 * i;
+			else
+				level = QPNP_WLED_BL_BR_LVL_MIN;
+			break;
+		}
+	}
+#else
 	if (wled->calc_curr &&
 		wled->curr_scale != QPNP_WLED_CURR_SCALE_MAX)
 		level = (level * wled->curr_scale) / QPNP_WLED_CURR_SCALE_MAX;
@@ -363,7 +389,7 @@ static int qpnp_wled_set_level(struct qpnp_wled *wled, int level)
 	if (wled->bl_scale_enabled && (wled->bl_scale > 0) &&
 		(wled->bl_scale < QPNP_WLED_BL_SCALE_MAX))
 		level = (level * wled->bl_scale) / QPNP_WLED_BL_SCALE_MAX;
-
+#endif
 	pr_debug("%s: brightness=%d level=%d\n",
 			__func__, wled->cdev.brightness, level);
 	/* set brightness registers */
