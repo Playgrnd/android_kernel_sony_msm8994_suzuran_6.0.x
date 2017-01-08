@@ -1317,7 +1317,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 			mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->on_cmds,
 						CMD_REQ_COMMIT);
 			display_onoff_state = true;
-			pr_info("%s: ctrl_pdata=%p ndx=%d\n", __func__,
+			pr_info("%s: ctrl_pdata=%pK ndx=%d\n", __func__,
 				ctrl_pdata, ctrl_pdata->ndx);
 
 			mdss_dsi_panel_poll_worker_scheduling(ctrl_pdata);
@@ -1377,7 +1377,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		if (ctrl->off_cmds.cmd_cnt) {
 			mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds,
 						CMD_REQ_COMMIT);
-			pr_info("%s: ctrl=%p ndx=%d\n",
+			pr_info("%s: ctrl=%pK ndx=%d\n",
 					__func__, ctrl, ctrl->ndx);
 			display_onoff_state = false;
 		}
@@ -1420,7 +1420,7 @@ static int mdss_dsi_panel_low_power_config(struct mdss_panel_data *pdata,
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ctrl=%p ndx=%d enable=%d\n", __func__, ctrl, ctrl->ndx,
+	pr_debug("%s: ctrl=%pK ndx=%d enable=%d\n", __func__, ctrl, ctrl->ndx,
 		enable);
 
 	/* Any panel specific low power commands/config */
@@ -1469,7 +1469,7 @@ static int mdss_dsi_panel_disp_on(struct mdss_panel_data *pdata)
 			mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds,
 						CMD_REQ_COMMIT);
 			display_onoff_state = true;
-			pr_info("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
+			pr_info("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 			mdss_dsi_panel_poll_worker_scheduling(ctrl);
 		}
