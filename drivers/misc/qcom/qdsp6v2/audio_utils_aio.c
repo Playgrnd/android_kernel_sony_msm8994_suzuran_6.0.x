@@ -1,6 +1,6 @@
 /* Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2009-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2016, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -571,6 +571,8 @@ int audio_aio_release(struct inode *inode, struct file *file)
 	struct q6audio_aio *audio = file->private_data;
 	pr_debug("%s[%p]\n", __func__, audio);
 	mutex_lock(&audio->lock);
+	mutex_lock(&audio->read_lock);
+	mutex_lock(&audio->write_lock);
 	audio->wflush = 1;
 	if (audio->wakelock_voted) {
 		audio->wakelock_voted = false;
@@ -594,6 +596,8 @@ int audio_aio_release(struct inode *inode, struct file *file)
 	wake_up(&audio->event_wait);
 	audio_aio_reset_event_queue(audio);
 	q6asm_audio_client_free(audio->ac);
+	mutex_unlock(&audio->write_lock);
+	mutex_unlock(&audio->read_lock);
 	mutex_unlock(&audio->lock);
 	mutex_destroy(&audio->lock);
 	mutex_destroy(&audio->read_lock);
@@ -1721,7 +1725,11 @@ static long audio_aio_ioctl(struct file *file, unsigned int cmd,
 				__func__);
 			rc = -EFAULT;
 		} else {
+			mutex_lock(&audio->read_lock);
+			mutex_lock(&audio->write_lock);
 			rc = audio_aio_ion_add(audio, &info);
+			mutex_unlock(&audio->write_lock);
+			mutex_unlock(&audio->read_lock);
 		}
 		mutex_unlock(&audio->lock);
 		break;
@@ -1736,7 +1744,11 @@ static long audio_aio_ioctl(struct file *file, unsigned int cmd,
 				__func__);
 			rc = -EFAULT;
 		} else {
+			mutex_lock(&audio->read_lock);
+			mutex_lock(&audio->write_lock);
 			rc = audio_aio_ion_remove(audio, &info);
+			mutex_unlock(&audio->write_lock);
+			mutex_unlock(&audio->read_lock);
 		}
 		mutex_unlock(&audio->lock);
 		break;
@@ -1919,6 +1931,7 @@ static long audio_aio_compat_ioctl(struct file *file, unsigned int cmd,
 	case AUDIO_GET_CONFIG_32: {
 		struct msm_audio_config32 cfg_32;
 		mutex_lock(&audio->lock);
+		memset(&cfg_32, 0, sizeof(cfg_32));
 		cfg_32.buffer_size = audio->pcm_cfg.buffer_size;
 		cfg_32.buffer_count = audio->pcm_cfg.buffer_count;
 		cfg_32.channel_count = audio->pcm_cfg.channel_count;
@@ -2015,6 +2028,7 @@ static long audio_aio_compat_ioctl(struct file *file, unsigned int cmd,
 			audio->buf_cfg.frames_per_buf);
 
 		mutex_lock(&audio->lock);
+		memset(&cfg_32, 0, sizeof(cfg_32));
 		cfg_32.meta_info_enable = audio->buf_cfg.meta_info_enable;
 		cfg_32.frames_per_buf = audio->buf_cfg.frames_per_buf;
 		if (copy_to_user((void *)arg, &cfg_32,
@@ -2038,7 +2052,11 @@ static long audio_aio_compat_ioctl(struct file *file, unsigned int cmd,
 		} else {
 			info.fd = info_32.fd;
 			info.vaddr = compat_ptr(info_32.vaddr);
+			mutex_lock(&audio->read_lock);
+			mutex_lock(&audio->write_lock);
 			rc = audio_aio_ion_add(audio, &info);
+			mutex_unlock(&audio->write_lock);
+			mutex_unlock(&audio->read_lock);
 		}
 		mutex_unlock(&audio->lock);
 		break;
@@ -2055,7 +2073,11 @@ static long audio_aio_compat_ioctl(struct file *file, unsigned int cmd,
 		} else {
 			info.fd = info_32.fd;
 			info.vaddr = compat_ptr(info_32.vaddr);
+			mutex_lock(&audio->read_lock);
+			mutex_lock(&audio->write_lock);
 			rc = audio_aio_ion_remove(audio, &info);
+			mutex_unlock(&audio->write_lock);
+			mutex_unlock(&audio->read_lock);
 		}
 		mutex_unlock(&audio->lock);
 		break;
